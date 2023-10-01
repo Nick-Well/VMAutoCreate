@@ -43,9 +43,9 @@ $NrOfVms = $NrOfVms - 1
 "yes" för att skipa att få frågan om att trycka enter och popup för att trycka i vmet
 och även stänga av raderingen av VM:et och skapandet
 #>
-$skip = "yes"
+$skip = "no"
 #"yes" stänger av clear-host och lite andra kommentar och sätter på ett par andra kommentar för mer debug
-$debug = "yes"
+$debug = "no"
 
 $clean = $false
 
