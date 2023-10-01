@@ -1,3 +1,10 @@
+param (
+	[Parameter(Mandatory=$false, Position=0)]
+	[string]$PathToFile,
+	[Parameter(Mandatory=$false, Position=1)]
+	[string]$WinISO
+)
+
 #jag vet att det finns procceses och att man kan dela up uppgifter så att saker går fortare.... im a noob and lazy i can wait
 #implementeringen skulle vara vid main
 $VMName = "vm"
@@ -10,7 +17,8 @@ $MemoryStartup = 3GB
 $NewVHDSize = 13GB
 $Gen = 2
 $Network = "LOCAL"#kanske skulle ha fixat egen Network men det är inte uppgiften:)
-
+if($WinISO -ne ""){$ISO = $WinISO}
+if($PathToFile -ne ""){$Path = $PathToFile}
 <#
 $VHD = "$Path/Drive/$VMName.vhdx"
 $VMPath = "$Path$VMName"
@@ -19,6 +27,10 @@ $VMPath = "$Path$VMName"
 #loginuser har en variabel som inte ska finnas men då jag skapat ison med User1
 $AdminNamn = "admin"#konvertera desa två till en fil med ett hashad lösenord... but in not here for best practesis
 $AdminPw = "123"
+
+$user1 = $AdminNamn+"A"
+#$user2 = $AdminNamn+"B"
+
 
 $Skript = "Account_folders.ps1"
 
@@ -31,14 +43,14 @@ $NrOfVms = $NrOfVms - 1
 "yes" för att skipa att få frågan om att trycka enter och popup för att trycka i vmet
 och även stänga av raderingen av VM:et och skapandet
 #>
-$skip = "no"
-#"yes" stänger av clear-host och lite andra commentar och sätter på ett par andra kommentar för mer debug
-$debug = "no"
+$skip = "yes"
+#"yes" stänger av clear-host och lite andra kommentar och sätter på ett par andra kommentar för mer debug
+$debug = "yes"
 
 $clean = $false
 
 function main {
-	Clear-Host
+	#Clear-Host
 	#jag har alltid använt "i" som en loop varibel. men varför... varför använs i sen j, i loops?
 	$VMNr = 0
 	while ($VMNr -le $NrOfVms){
@@ -49,11 +61,16 @@ function main {
 		}
 		StopVM($VMNr)
 		while ($round -le 1) {
-			if($skip -eq "yes") {$skipCD = "yes"}
-			if($round -eq 1){$skipCD = "yes"}
-			if((StartVM -VMNr $VMNr -skip $skipCD)){
-				if($debug -eq "yes"){Write-Host "its running the vm setup for $name$VMNr round $round"}
-				SendFile -VMNr $VMNr -round $round
+			if($round -eq "1" -and $VMNr -eq 1){
+				$user = $user1
+			}
+			else {
+				$user = $AdminNamn
+			}
+			if($round -eq 1 -or $skip -eq "yes"){$skipCD = "yes"}
+			if((StartVM -VMNr $VMNr -skip $skipCD -user $user)){
+				if($debug -eq "yes"){Write-Host "its running the vm setup $user for $name$VMNr round $round"}
+				SendFile -VMNr $VMNr -round $round -user $user
 				if($skipCD -ne "yes"){StopVM($VMNr)}#asså dena koden blir spagheti nu i slutet, är för trött
 				Start-Sleep -Seconds 5
 			}
@@ -72,7 +89,7 @@ function cleanUpVMs {
 	$VMNr = 0
 	while ($VMNr -le $NrOfVms) {
 		if ($skip -ne "yes") {
-			Write-Host "Do you want to clean up files on the vm$VMNr Yes/No"
+			Write-Host "Do you want to clean up files on the vm$VMNr yes/NO"
 			$vmclean = ((Read-Host).ToLower()).ToCharArray()[0]
 		}
 		else {
@@ -95,8 +112,11 @@ function StartVM {
 		$VMNr,
 		[Parameter(Mandatory=$false, Position=1)]
 		[string]
-		$skip
-	)
+		$skip,
+		[Parameter(Mandatory=$false, Position=2)]
+		[string]
+		$user
+		)
 	$folder = $false
 	$procesBool = $false
 	$VMName = $VMName + $VMNr
@@ -125,7 +145,7 @@ function StartVM {
 			Write-Host "Skript is not frozzen C: $dot"
 		}
 		else{
-			Write-host "starting the invoke tests"
+			Write-host "starting the invoke tests $VMNr"
 		}
 		if($skip -ne "yes"){
 			TASKKILL /IM vmconnect.exe /F
@@ -135,11 +155,11 @@ function StartVM {
 			Start-Sleep -Seconds 1
 			$dot = "." * ([int]$randomloopshit)
 			try {
-				$folder = Invoke-Command -VMName $VMName -Credential (UserLogin) -ScriptBlock{
+				$folder = Invoke-Command -VMName $VMName -Credential (UserLogin($user)) -ScriptBlock{
 					Test-Path -Path "C:\"
 				} -ErrorAction Stop
 				if ($folder) {
-					$proces = Invoke-Command -VMName $VMName -Credential (UserLogin) -ScriptBlock{
+					$proces = Invoke-Command -VMName $VMName -Credential (UserLogin($user)) -ScriptBlock{
 						(Get-Service -Name vmicheartbeat).Status
 					}-ErrorAction Stop
 					#jag sat uppe till klockan 2:40 för att $proces är inte en "Running" String. love this....
@@ -186,22 +206,24 @@ function SendFile {
 		$round,
 		[Parameter(Mandatory=$false, Position=2)]
 		[bool]
-		$clear
+		$clear,
+		[Parameter(Mandatory=$false, Position=3)]
+		[string]
+		$user
 	)
 	$VMName = $VMName + $VMNr
 	if($debug -eq "yes"){Write-Host "SendFile to $VMName"}
-	$s = New-PSSession -VMName $VMName -Credential (UserLogin)
+	$s = New-PSSession -VMName $VMName -Credential (UserLogin($user))
 	#nu när jag anävnder $round borde jag ta bort $HostName för den gör det samma i den andra filen vilket även tar bort $vm2 vilket inte är en bra
-	$HostName = Invoke-Command -VMName $VMName -Credential (UserLogin) -ScriptBlock{$env:COMPUTERNAME}
-	Invoke-Command -VMName $VMName -Credential (UserLogin) -FilePath $Skript -ArgumentList $VMName, $VMNr, $HostName, $debug, $AdminNamn, $round, $clean
+	$HostName = Invoke-Command -VMName $VMName -Credential (UserLogin($user)) -ScriptBlock{$env:COMPUTERNAME}
+	Invoke-Command -VMName $VMName -Credential (UserLogin($user)) -FilePath $Skript -ArgumentList $VMName, $VMNr, $HostName, $debug, $AdminNamn, $round, $clean
 	if($VMNr -eq 0 -and $round -eq 0){
 		Copy-Item -ToSession $s -Path .\Send.txt -Destination "C:\Temp\RW\"
 	}
-	if($debug -eq "yes"){Write-Host "complet SendFile $VMName"}
 }
-function UserLogin {
+function UserLogin($user) {
 	$Pass = ConvertTo-SecureString -String $AdminPw -AsPlainText -Force
-	$Creds = New-Object System.Management.Automation.PSCredential("$AdminNamn", $Pass)
+	$Creds = New-Object System.Management.Automation.PSCredential("$user", $Pass)
 return $Creds
 }
 function CheckVMStatus {
