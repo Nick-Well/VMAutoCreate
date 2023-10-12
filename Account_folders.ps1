@@ -34,6 +34,10 @@ function main {
 	}
 	Uppgiften
 }
+
+
+
+
 function setupVMs(){
 	New-LocalGroup -Name $grup
 	$PassUserA = ConvertTo-SecureString -String "123"-AsPlainText -Force
@@ -110,8 +114,7 @@ function part2 {
 		och skickas hit och i VM-Starter så borde jag bytta inlog på PSseasion till admin vid $runda = 1
 		för att den är just nu inlogad som admin och admin finns redan i vm0,1 så kommer deta funka hur som
 		#>
-		Copy-Item -Path "\\User0\$ShareName\*.txt" -Destination "C:\Users\adminA\Desktop\" #from VM1 to local
-		Remove-Item "\\User0\$ShareName\*.txt" -Force
+		Move-Item -Path "\\User0\$ShareName\*.txt" -Destination "C:\Users\adminA\Desktop\" #from VM1 to local
 		Copy-Item -Path "C:\Users\adminA\Desktop\*.txt" -Destination "\\USER0\DesktopVm1\" #from local to VM1
 	}
 

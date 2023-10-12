@@ -1,8 +1,24 @@
 param (
 	[Parameter(Mandatory=$false, Position=0)]
-	[string]$PathToFile,
+	[string]$NameVm,
 	[Parameter(Mandatory=$false, Position=1)]
-	[string]$WinISO
+	[string]$PathToFile,
+	[Parameter(Mandatory=$false, Position=2)]
+	[string]$WinISO,
+	[Parameter(Mandatory=$false, Position=3)]
+	[string]$memory,
+	[Parameter(Mandatory=$false, Position=4)]
+	[string]$VHDSize,
+	[Parameter(Mandatory=$false, Position=5)]
+	[int]$Generation,
+	[Parameter(Mandatory=$false, Position=6)]
+	[string]$Network,
+	[Parameter(Mandatory=$false, Position=7)]
+	[int]$AmountOfVms,
+	[Parameter(Mandatory=$false, Position=8)]
+	[string]$Skipp,
+	[Parameter(Mandatory=$false, Position=9)]
+	[string]$dbug
 )
 
 #jag vet att det finns procceses och att man kan dela up uppgifter så att saker går fortare.... im a noob and lazy i can wait
@@ -16,40 +32,59 @@ $ISO = "$Path/Disk/Windows.iso"
 $MemoryStartup = 3GB
 $NewVHDSize = 13GB
 $Gen = 2
-$Network = "LOCAL"#kanske skulle ha fixat egen Network men det är inte uppgiften:)
-if($WinISO -ne ""){$ISO = $WinISO}
-if($PathToFile -ne ""){$Path = $PathToFile}
-<#
-$VHD = "$Path/Drive/$VMName.vhdx"
-$VMPath = "$Path$VMName"
-#>
+$NeT = "LOCAL"#kanske skulle ha fixat egen NeT men det är inte uppgiften:)
+
 
 #loginuser har en variabel som inte ska finnas men då jag skapat ison med User1
 $AdminNamn = "admin"#konvertera desa två till en fil med ett hashad lösenord... but in not here for best practesis
 $AdminPw = "123"
 
-$user1 = $AdminNamn+"A"
+$Users = @($AdminNamn,$AdminNamn+"A",$AdminNamn+"B")
 #$user2 = $AdminNamn+"B"
-
 
 $Skript = "Account_folders.ps1"
 
 #Gör dena varibalen om jag nongång i framtiden känner för att använda 🤢 windows. för att skapa flera vms än 2.
-$NrOfVms = 2
+$NrOfVms = 3
 
 #ignor this this is shit programers like like and list starts with 0 and not 1
 $NrOfVms = $NrOfVms - 1
-<#
-"yes" för att skipa att få frågan om att trycka enter och popup för att trycka i vmet
-och även stänga av raderingen av VM:et och skapandet
-#>
+
+#"yes" för att skipa att få frågan om att trycka enter och popup för att trycka i vmet
+#och även stänga av raderingen av VM:et och skapandet
+
 $skip = "no"
 #"yes" stänger av clear-host och lite andra kommentar och sätter på ett par andra kommentar för mer debug
 $debug = "no"
 
 $clean = $false
 
-function main {
+
+if($NameVm -ne ""){$VMName = $NameVm}
+if($PathToFile -ne ""){$Path = $PathToFile}
+if($WinISO -ne ""){$ISO = $WinISO}
+if($memory -ne ""){$MemoryStartup = $memory}
+if($VHDSize -ne ""){$NewVHDSize = $VHDSize}
+if($Generation -ne ""){$Gen = $Generation}
+if($Network -ne ""){$NeT = $Network}
+if($AntalVms -ne ""){$NrOfVms = $AntalVms}
+if($Skipp -ne ""){$skip = $Skipp}
+if($dbug -ne ""){$debug = $dbug}
+if($debug -eq "yes"){
+	Write-Host
+	Write-Host $PathToFile
+	Write-Host $WinISO
+	Write-Host $memory
+	Write-Host $VHDSize
+	Write-Host $Generation
+	Write-Host $Network
+	Write-Host $AntalVms
+	Write-Host $Skipp
+	Write-Host $dbug
+}
+
+
+function main{
 	#Clear-Host
 	#jag har alltid använt "i" som en loop varibel. men varför... varför använs i sen j, i loops?
 	$VMNr = 0
@@ -62,10 +97,10 @@ function main {
 		StopVM($VMNr)
 		while ($round -le 1) {
 			if($round -eq "1" -and $VMNr -eq 1){
-				$user = $user1
+				$user = $Users[1]
 			}
 			else {
-				$user = $AdminNamn
+				$user = $Users[0]
 			}
 			if($round -eq 1 -or $skip -eq "yes"){$skipCD = "yes"}
 			if((StartVM -VMNr $VMNr -skip $skipCD -user $user)){
@@ -82,19 +117,16 @@ function main {
 		$VMNr++
 	}
 	#this needs to be in a loop to clean both vm's after that everythin is done
-	cleanUpVMs
+	if($skip -ne "yes"){
+		cleanUpVMs
+	}
 	if($debug -eq "yes"){Write-Host "everything is done"}
 }
-function cleanUpVMs {
+function cleanUpVMs{
 	$VMNr = 0
 	while ($VMNr -le $NrOfVms) {
-		if ($skip -ne "yes") {
-			Write-Host "Do you want to clean up files on the vm$VMNr yes/NO"
-			$vmclean = ((Read-Host).ToLower()).ToCharArray()[0]
-		}
-		else {
-			$vmclean = "n"
-		}
+		Write-Host "Do you want to clean up files on the vm$VMNr yes/NO"
+		$vmclean = ((Read-Host).ToLower()).ToCharArray()[0]
 		if($vmclean -eq "y"){
 			if((StartVM -VMNr $VMNr -skip "yes")){
 				if($debug -eq "yes"){Write-Host "cleaning $name$VMNr"}
@@ -105,7 +137,7 @@ function cleanUpVMs {
 		$VMNr++
 	}
 }
-function StartVM {
+function StartVM{
 	param (
 		[Parameter(Mandatory=$true, Position=0)]
 		[int]
@@ -195,7 +227,7 @@ function StartVM {
 		main
 	}
 }
-function SendFile {
+function SendFile{
 	#jag vet deta är inte en bra lösning att convertera $vmname varjegång... men orkar ej
 	param (
 		[Parameter(Mandatory=$true, Position=0)]
@@ -216,32 +248,32 @@ function SendFile {
 	$s = New-PSSession -VMName $VMName -Credential (UserLogin($user))
 	#nu när jag anävnder $round borde jag ta bort $HostName för den gör det samma i den andra filen vilket även tar bort $vm2 vilket inte är en bra
 	$HostName = Invoke-Command -VMName $VMName -Credential (UserLogin($user)) -ScriptBlock{$env:COMPUTERNAME}
-	Invoke-Command -VMName $VMName -Credential (UserLogin($user)) -FilePath $Skript -ArgumentList $VMName, $VMNr, $HostName, $debug, $AdminNamn, $round, $clean
+	Invoke-Command -VMName $VMName -Credential (UserLogin($user)) -FilePath $Skript -ArgumentList $VMName, $VMNr, $HostName, $debug, $Users[0], $round, $clean
 	if($VMNr -eq 0 -and $round -eq 0){
 		Copy-Item -ToSession $s -Path .\Send.txt -Destination "C:\Temp\RW\"
 	}
 }
-function UserLogin($user) {
+function UserLogin($user){
 	$Pass = ConvertTo-SecureString -String $AdminPw -AsPlainText -Force
 	$Creds = New-Object System.Management.Automation.PSCredential("$user", $Pass)
 return $Creds
 }
-function CheckVMStatus {
-	if ($null -eq (Get-VM)){
-		Write-Output "theres no VM on the system"
+function CheckVMStatus($VMNr){
+	if ($null -eq (Get-VM -Name $VMName)){
+		if($debug -eq "yes"){Write-Host "theres no VM on the system"}
 		return $false
 	}
 	else{
-		Write-Output "theres vm's on the system"
+		if($debug -eq "yes"){Write-Host "theres vm's on the system"}
 		return $true
 
 	}
-}#DONE
-function RemoveVM ($VMNr) {
+}
+function RemoveVM($VMNr){
 	#Tänkte egentligen att använda += men verka inte funka så som jag tänkte
 	$VMName = $VMName + $VMNr
 	$VHD = "$Path/Drive/$VMName.vhdx"
-	if((CheckVMStatus)){
+	if((CheckVMStatus($VMnr))){
 		try {
 			Stop-VM -Name $VMName -Force -ErrorAction Ignore
 			Remove-VM -Name $VMName -Force -ErrorAction Ignore
@@ -257,15 +289,15 @@ function RemoveVM ($VMNr) {
 	catch {
 		Write-Host "Nothing to clean in $Path$VMName, $VHD"
 	}
-}#DONE
-function CreatVM ($VMNr) {
+}
+function CreatVM($VMNr){
 	$VMName = $VMName + $VMNr
 	$VHD = "$Path/Drive/$VMName.vhdx"
 	$VMPath = "$Path$VMName"
 
-	New-VM -Name $VMName -MemoryStartupBytes $MemoryStartup -Path $VMPath -newVHDPath $VHD -NewVHDSizeBytes $NewVHDSize -Generation $Gen -SwitchName $Network
+	New-VM -Name $VMName -MemoryStartupBytes $MemoryStartup -Path $VMPath -newVHDPath $VHD -NewVHDSizeBytes $NewVHDSize -Generation $Gen -SwitchName $NeT
 
-	if($true -eq (CheckVMStatus)){
+	if((CheckVMStatus($VMNr))){
 		Add-VMDvdDrive -VMName $VMName -Path $ISO
 
 		$vmDrive = Get-VMDvdDrive -VMName $VMName
@@ -282,14 +314,27 @@ function CreatVM ($VMNr) {
 			}
 		}
 	}
-}#DONE
-function StopVM ($VMNr) {
+}
+function StopVM($VMNr){
 	Stop-VM $VMName$VMNr -TurnOff -Force
-}#DONE
-function RestartVM ($VMNr) {
+}
+function RestartVM($VMNr){
 	Restart-VM $VMName$VMNr -Force
-}#DONE
+}
+function CreatXMLFile{
+	param(
+		[string]$adminAcc,
+		[string]$PcName,
+		[System.Security.SecureString]$Password
+	)
+	Remove-Item .\autounattend.xml -Force
+	$Unattend = [xml] (Get-Content .\DontChangeThis.xml)
+
+
+}
 function test {
+	$Unattend = [xml] (Get-Content DontChangeThis.xml)
+	#$Unattend -ireplace
 }
 
 #test
