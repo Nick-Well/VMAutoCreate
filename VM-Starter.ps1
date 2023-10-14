@@ -328,12 +328,12 @@ function CreatXMLFile{
 		[System.Security.SecureString]$Password
 	)
 	Remove-Item .\autounattend.xml -Force
-	$Unattend = [xml] (Get-Content .\DontChangeThis.xml)
+#	$Unattend = [xml] (Get-Content .\DontChangeThis.xml)
 
 
 }
 function test {
-	$Unattend = [xml] (Get-Content DontChangeThis.xml)
+i#	$Unattend = [xml] (Get-Content DontChangeThis.xml)
 	#$Unattend -ireplace
 }
 
