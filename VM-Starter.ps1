@@ -1,39 +1,32 @@
-param (
-	[Parameter(Mandatory=$false, Position=0)]
-	[string]$NameVm,
-	[Parameter(Mandatory=$false, Position=1)]
-	[string]$PathToFile,
-	[Parameter(Mandatory=$false, Position=2)]
-	[string]$WinISO,
-	[Parameter(Mandatory=$false, Position=3)]
-	[string]$memory,
-	[Parameter(Mandatory=$false, Position=4)]
-	[string]$VHDSize,
-	[Parameter(Mandatory=$false, Position=5)]
-	[int]$Generation,
-	[Parameter(Mandatory=$false, Position=6)]
-	[string]$Network,
-	[Parameter(Mandatory=$false, Position=7)]
-	[int]$AmountOfVms,
-	[Parameter(Mandatory=$false, Position=8)]
-	[string]$Skipp,
-	[Parameter(Mandatory=$false, Position=9)]
-	[string]$dbug
-)
-
 #jag vet att det finns procceses och att man kan dela up uppgifter så att saker går fortare.... im a noob and lazy i can wait
 #implementeringen skulle vara vid main
-$VMName = "vm"
+param (
 
-$Path = "C:/Users/$env:username/VM/"
-
-#CreatVM variabler
-$ISO = "$Path/Disk/Windows.iso"
-$MemoryStartup = 3GB
-$NewVHDSize = 13GB
-$Gen = 2
-$NeT = "LOCAL"#kanske skulle ha fixat egen NeT men det är inte uppgiften:)
-
+  #CreatVM variabler
+	[Parameter(Mandatory=$false, Position=0)]
+	[string]$VMName = "vm",
+	[Parameter(Mandatory=$false, Position=1)]
+	[string]$Path = "C:/Users/$env:username/VM/",
+	[Parameter(Mandatory=$false, Position=2)]
+	[string]$ISO = "$Path/Disk/Windows.iso",
+	[Parameter(Mandatory=$false, Position=3)]
+	[string]$MemoryStartup = 3GB,
+	[Parameter(Mandatory=$false, Position=4)]
+	[string]$NewVHDSize = 13GB,
+	[Parameter(Mandatory=$false, Position=5)]
+	[int]$Gen = 2,
+	[Parameter(Mandatory=$false, Position=6)]
+	[string]$NeT = "LOCAL",#kanske skulle ha fixat egen NeT men det är inte uppgiften:)
+	[Parameter(Mandatory=$false, Position=7)]
+	[int]$NrOfVms = 3,
+  #"yes" för att skipa att få frågan om att trycka enter och popup för att trycka i vmet
+  #och även stänga av raderingen av VM:et och skapandet
+	[Parameter(Mandatory=$false, Position=8)]
+	[string]$skip = "no",
+  #"yes" stänger av clear-host och lite andra kommentar och sätter på ett par andra kommentar för mer debug
+	[Parameter(Mandatory=$false, Position=9)]
+	[string]$debug = "no"
+)
 
 #loginuser har en variabel som inte ska finnas men då jag skapat ison med User1
 $AdminNamn = "admin"#konvertera desa två till en fil med ett hashad lösenord... but in not here for best practesis
@@ -43,45 +36,9 @@ $Users = @($AdminNamn,$AdminNamn+"A",$AdminNamn+"B")
 #$user2 = $AdminNamn+"B"
 
 $Skript = "Account_folders.ps1"
-
-#Gör dena varibalen om jag nongång i framtiden känner för att använda 🤢 windows. för att skapa flera vms än 2.
-$NrOfVms = 3
-
 #ignor this this is shit programers like like and list starts with 0 and not 1
 $NrOfVms = $NrOfVms - 1
-
-#"yes" för att skipa att få frågan om att trycka enter och popup för att trycka i vmet
-#och även stänga av raderingen av VM:et och skapandet
-
-$skip = "no"
-#"yes" stänger av clear-host och lite andra kommentar och sätter på ett par andra kommentar för mer debug
-$debug = "no"
-
 $clean = $false
-
-
-if($NameVm -ne ""){$VMName = $NameVm}
-if($PathToFile -ne ""){$Path = $PathToFile}
-if($WinISO -ne ""){$ISO = $WinISO}
-if($memory -ne ""){$MemoryStartup = $memory}
-if($VHDSize -ne ""){$NewVHDSize = $VHDSize}
-if($Generation -ne ""){$Gen = $Generation}
-if($Network -ne ""){$NeT = $Network}
-if($AntalVms -ne ""){$NrOfVms = $AntalVms}
-if($Skipp -ne ""){$skip = $Skipp}
-if($dbug -ne ""){$debug = $dbug}
-if($debug -eq "yes"){
-	Write-Host
-	Write-Host $PathToFile
-	Write-Host $WinISO
-	Write-Host $memory
-	Write-Host $VHDSize
-	Write-Host $Generation
-	Write-Host $Network
-	Write-Host $AntalVms
-	Write-Host $Skipp
-	Write-Host $dbug
-}
 
 
 function main{
